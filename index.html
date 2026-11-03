@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tally</title>
+<meta name="description" content="A private, encrypted habit and accountability log that lives in git.">
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f0f10" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tally">
+<link rel="stylesheet" href="css/app.css">
+<script>try{var t=JSON.parse(localStorage.getItem('tally-theme')||'null');if(t&&t!=='auto')document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body>
+<div id="gate" class="gate" hidden></div>
+
+<div id="app" hidden>
+  <header class="topbar">
+    <a class="brand" href="#log" aria-label="Tally, today">
+      <svg viewBox="0 0 64 64" class="brand-mark" aria-hidden="true"><rect width="64" height="64" rx="16" fill="currentColor"/><g stroke="var(--logo-ink)" stroke-width="4" stroke-linecap="round"><path d="M20 18v28M27.5 18v28M35 18v28M42.5 18v28"/><path d="M14.5 39.5 49 23.5"/></g></svg>
+      <span>Tally</span>
+    </a>
+    <nav class="tabs-top" aria-label="Main"></nav>
+    <button id="syncPill" class="sync-pill" data-act="sync-now" data-state="busy"><span class="dot"></span><span class="txt">Loading</span></button>
+  </header>
+  <main id="view"></main>
+  <nav class="tabs-bottom" aria-label="Main"></nav>
+</div>
+
+<dialog id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-inner">
+    <header class="sheet-head"><h2 id="sheetTitle"></h2><button class="icon-btn" data-act="sheet-close" aria-label="Close"><svg viewBox="0 0 24 24" class="i" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></header>
+    <div id="sheetBody" class="sheet-body"></div>
+  </div>
+</dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="tip" class="tip" hidden></div>
+<noscript><p style="padding:24px">Tally needs JavaScript.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
