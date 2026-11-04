@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "app": "tally",
+  "kdf": {
+    "name": "PBKDF2-SHA256",
+    "iter": 400000,
+    "salt": "oQ74YJswuAzUVMdAWt/Amw=="
+  },
+  "check": {
+    "v": 1,
+    "iv": "yaNNrvDpCTSI50ye",
+    "ct": "vDChYWis5tv7HMsdKuS4atxDsqAR59aJS3E="
+  },
+  "token": {
+    "v": 1,
+    "iv": "5QlVHfBnx2Zmkpv9",
+    "ct": "mAVDFdUUXh90X1O8U8Qq7AGQaS3vsk0LTjyZXeZRQoGSVv2yi3Aa7snJ6CgDZ9EXeCpxH8TDoiCcMBcBLpDTFsoqpmfTAEvJOvndX80cQfR4bS648gz9k/hTzm0HpLndOjCGZxys6a0AGK7wJn5J"
+  },
+  "created": "2026-11-04T06:53:00.311Z"
+}
