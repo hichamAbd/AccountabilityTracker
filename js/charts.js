@@ -10,6 +10,8 @@ export function niceMax(v) {
   const n = v / p;
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
 }
+// Axis label that never pokes out past the right edge of the chart.
+const xLabel = (x, W) => (x > W - 18 ? `x="${W - 1}" text-anchor="end"` : `x="${r1(x)}" text-anchor="middle"`);
 const tick = v => (v >= 1000 ? `${r1(v / 1000)}k` : String(r1(v)));
 
 function frame(W, H, cls = '') {
@@ -26,7 +28,7 @@ function yGrid(s, { L, R, W, y, top }) {
 
 // Bars over time, with an optional rolling-average line and goal line.
 export function timeline({ buckets, width, height = 200, fill, avg, goal, label, tip }) {
-  const W = Math.max(240, Math.floor(width));
+  const W = Math.max(200, Math.floor(width));
   const H = height;
   const L = 30, R = 8, T = 12, B = 24;
   const iw = W - L - R, ih = H - T - B;
@@ -54,7 +56,7 @@ export function timeline({ buckets, width, height = 200, fill, avg, goal, label,
   const step = Math.ceil(n / maxLabels);
   buckets.forEach((b, i) => {
     if (i % step) return;
-    s.push(`<text class="ax" x="${r1(L + i * bw + bw / 2)}" y="${H - 7}" text-anchor="middle">${esc(label(b, i))}</text>`);
+    s.push(`<text class="ax" ${xLabel(L + i * bw + bw / 2, W)} y="${H - 7}">${esc(label(b, i))}</text>`);
   });
   buckets.forEach((b, i) => {
     s.push(`<rect class="hit" x="${r1(L + i * bw)}" y="${T}" width="${r1(bw)}" height="${ih}" data-tip="${esc(tip(b, i))}"/>`);
@@ -93,7 +95,7 @@ export function heatmap({ daily, start, end, color, weekStart = 1, tip, monthNam
 
 // Weekday × hour "punch card": circle area = how often it happens then.
 export function punch({ m, width, color, weekStart = 1, tip, dayName, hourLabel }) {
-  const W = Math.max(280, Math.floor(width));
+  const W = Math.max(220, Math.floor(width));
   const L = 36, R = 6, T = 6, B = 20;
   const cw = (W - L - R) / 24;
   const ch = Math.min(28, Math.max(16, cw * 1.15));
@@ -121,7 +123,7 @@ export function punch({ m, width, color, weekStart = 1, tip, dayName, hourLabel 
 
 // Simple vertical bars with a label under each.
 export function bars({ values, labels, width, height = 140, fill, tip }) {
-  const W = Math.max(200, Math.floor(width));
+  const W = Math.max(180, Math.floor(width));
   const H = height;
   const L = 26, R = 4, T = 10, B = 22;
   const iw = W - L - R, ih = H - T - B;
@@ -149,7 +151,7 @@ export function bars({ values, labels, width, height = 140, fill, tip }) {
 // Several habits on one time axis.
 // partial: [firstIsPartial, lastIsPartial] — those end segments are drawn dashed.
 export function lines({ series, n, width, height = 210, label, tip, partial = [false, false] }) {
-  const W = Math.max(240, Math.floor(width));
+  const W = Math.max(200, Math.floor(width));
   const H = height;
   const L = 30, R = 10, T = 12, B = 24;
   const iw = W - L - R, ih = H - T - B;
@@ -170,7 +172,7 @@ export function lines({ series, n, width, height = 210, label, tip, partial = [f
   }
   const maxLabels = Math.max(2, Math.floor(iw / 62));
   const step = Math.ceil(n / maxLabels);
-  for (let i = 0; i < n; i += step) s.push(`<text class="ax" x="${r1(x(i))}" y="${H - 7}" text-anchor="middle">${esc(label(i))}</text>`);
+  for (let i = 0; i < n; i += step) s.push(`<text class="ax" ${xLabel(x(i), W)} y="${H - 7}">${esc(label(i))}</text>`);
   const cw = n > 1 ? iw / (n - 1) : iw;
   for (let i = 0; i < n; i++) s.push(`<rect class="hit" x="${r1(x(i) - cw / 2)}" y="${T}" width="${r1(cw)}" height="${ih}" data-tip="${esc(tip(i))}"/>`);
   s.push('</svg>');

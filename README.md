@@ -6,7 +6,8 @@ A private habit and accountability log that runs entirely in the browser and sto
 
 ## What it does
 
-- **Today**: one big **+** per habit, **−** to remove today's last entry, and Undo after every tap. The ⋯ button lets you log at a past time, with a quantity or a note. Keys `1`–`9` log on a computer.
+- **Today**: tap **+** to log. The date defaults to today, with one tap for yesterday or a picker for any other day, plus the time, how many and an optional comment. For one-tap logging, turn off *Ask for date and comment* in Settings. **−** removes today's last entry, and every change can be undone. Tap a card to open that habit's dashboard. **⋯** manages the habit: edit, reorder, hide, archive or delete it. Keys `1`–`9` log on a computer.
+- **Adding habits**: tick several suggestions on the first screen, or use *New habit*, which also offers the suggestions you haven't added yet.
 - **Dashboard**: per-habit totals, per day/week/month rates, change vs the previous period, time since last, streaks (clean streaks for bad habits, weekly streaks for weekly goals), clean/done days, goal kept, busiest weekday, peak hour and typical gap. Charts:
   - Over time: day, week or month bars with a rolling average and goal line. Unfinished periods are faded.
   - Calendar heatmap: 12 months or any year.

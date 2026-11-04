@@ -1,6 +1,7 @@
 // Offline support: serve the app shell from cache instantly, refresh it in the background.
 // GitHub API calls are never cached here.
-const CACHE = 'tally-v1';
+// Bump this on every deploy: the browser then installs the new worker and the app reloads itself.
+const CACHE = 'tally-v2';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/store.js', 'js/stats.js', 'js/charts.js', 'js/github.js', 'js/crypto.js', 'js/idb.js', 'js/config.js',
@@ -8,7 +9,10 @@ const SHELL = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's HTTP cache so a new version is fetched whole, not half old.
+  e.waitUntil(caches.open(CACHE)
+    .then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {

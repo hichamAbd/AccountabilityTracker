@@ -21,6 +21,7 @@ const PALETTES = {
 const DEFAULT_PREFS = {
   theme: 'auto', colorMode: 'semantic', palette: { bad: PALETTES.classic.bad, mid: PALETTES.classic.mid, good: PALETTES.classic.good },
   weekStart: 1, sections: { timeline: true, heatmap: true, when: true, gaps: true, recent: true },
+  logDetails: true, // + opens a sheet with date and comment; false = log instantly
 };
 const SECTIONS = [
   { id: 'timeline', name: 'Over time', desc: 'Bars per day, week or month with a rolling average' },
@@ -30,21 +31,38 @@ const SECTIONS = [
   { id: 'recent', name: 'Recent entries', desc: 'The latest entries for the habit' },
 ];
 const SWATCHES = ['#c8553d', '#d9822b', '#d9a441', '#8a9a3a', '#4b9b6e', '#3f8f9a', '#3f6fb5', '#6a5bb5', '#a35b9a', '#7a746b'];
-const EMOJIS = ['🚬', '📱', '🍺', '🍷', '🍬', '🍔', '☕', '🎮', '📺', '💸', '😤', '🛌', '💧', '🏃', '🏋️', '🚶', '📖', '🧘', '🥗', '🍎', '😴', '✍️', '🎸', '🧹', '💊', '🙏', '🌿', '⭐'];
+const EMOJIS = ['🚬', '💨', '📱', '🍺', '🍷', '🍬', '🍔', '☕', '🎮', '📺', '💸', '🛒', '😤', '🌙', '🛌', '💧', '🏃', '🏋️', '🚶', '📖', '🧘', '🥗', '🍎', '😴', '✍️', '🎸', '🧹', '💊', '🙏', '🌿', '⭐'];
 const SUGGEST = [
   { name: 'Smoking', emoji: '🚬', kind: 'bad' },
+  { name: 'Vaping', emoji: '💨', kind: 'bad' },
   { name: 'Doomscrolling', emoji: '📱', kind: 'bad' },
   { name: 'Alcohol', emoji: '🍺', kind: 'bad' },
   { name: 'Junk food', emoji: '🍔', kind: 'bad' },
+  { name: 'Sugar', emoji: '🍬', kind: 'bad' },
+  { name: 'Impulse buying', emoji: '🛒', kind: 'bad' },
   { name: 'Losing temper', emoji: '😤', kind: 'bad' },
-  { name: 'Coffee', emoji: '☕', kind: 'neutral' },
+  { name: 'Staying up late', emoji: '🌙', kind: 'bad' },
   { name: 'Water', emoji: '💧', kind: 'good', goal: { type: 'min', count: 8, period: 'day' } },
   { name: 'Exercise', emoji: '🏃', kind: 'good', goal: { type: 'min', count: 3, period: 'week' } },
+  { name: 'Walk', emoji: '🚶', kind: 'good' },
   { name: 'Reading', emoji: '📖', kind: 'good' },
   { name: 'Meditation', emoji: '🧘', kind: 'good' },
   { name: 'Healthy meal', emoji: '🥗', kind: 'good' },
   { name: 'Early night', emoji: '😴', kind: 'good' },
+  { name: 'Journaling', emoji: '✍️', kind: 'good' },
+  { name: 'Coffee', emoji: '☕', kind: 'neutral' },
+  { name: 'Medication', emoji: '💊', kind: 'neutral' },
 ];
+// Suggestions not yet added, as chips. act: what tapping one does.
+function suggestionChips(act, picked = new Set()) {
+  const have = new Set(store.view.habits.map(h => h.name.toLowerCase()));
+  const group = kinds => SUGGEST.map((s, i) => [s, i])
+    .filter(([s]) => kinds.includes(s.kind) && !have.has(s.name.toLowerCase()))
+    .map(([s, i]) => `<button type="button" class="chip ${picked.has(i) ? 'on' : ''}" data-act="${act}" data-v="${i}" aria-pressed="${picked.has(i)}">${s.emoji} ${esc(s.name)}</button>`).join('');
+  const less = group(['bad']);
+  const more = group(['good', 'neutral']);
+  return `${less ? `<h4>Do less</h4><div class="chips wrap">${less}</div>` : ''}${more ? `<h4>Do more, or just count</h4><div class="chips wrap">${more}</div>` : ''}`;
+}
 const KIND = {
   bad: { tag: 'Break', long: 'Bad habit · less is better' },
   good: { tag: 'Build', long: 'Good habit · more is better' },
@@ -75,6 +93,10 @@ const ICON = {
   eye: svgI('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>'),
   lock: svgI('<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
   close: svgI('<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>'),
+  archive: svgI('<rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2"/><path d="M5 9v9.5c0 .8.7 1.5 1.5 1.5h11c.8 0 1.5-.7 1.5-1.5V9M10 13h4"/>'),
+  trash: svgI('<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/>'),
+  hide: svgI('<path d="M3 3l18 18M10.6 6.1c.5-.1.9-.1 1.4-.1 6 0 9.5 6 9.5 6s-1 1.8-3 3.6M6.5 7.5C4 9.2 2.5 12 2.5 12S6 18 12 18c1.4 0 2.7-.3 3.8-.9"/>'),
+  order: svgI('<path d="M8 4v16M4.5 7.5 8 4l3.5 3.5M16 20V4M12.5 16.5 16 20l3.5-3.5"/>'),
 };
 const LOGO = `<svg viewBox="0 0 64 64" class="logo" aria-hidden="true"><rect width="64" height="64" rx="16" fill="currentColor"/><g stroke="var(--logo-ink)" stroke-width="3.6" stroke-linecap="round"><path d="M20 18v28M27.5 18v28M35 18v28M42.5 18v28"/><path d="M14.5 39.5 49 23.5"/></g></svg>`;
 
@@ -108,7 +130,6 @@ function dur(ms) {
   if (d < 365) return `${Math.round(d / 30.44)} mo`;
   return `${nf1.format(d / 365.25)} y`;
 }
-const toLocalInput = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
 const goalText = g => (g && g.type ? `${g.type === 'max' ? 'at most' : 'at least'} ${fmt(g.count)} per ${g.period}` : '');
 const streakLabel = h => (h.kind === 'bad' ? (h.goal?.type === 'max' && (h.goal.period === 'week' || h.goal.count > 0) ? 'Within limit' : 'Clean streak') : h.kind === 'good' ? 'Streak' : 'Active streak');
 
@@ -164,12 +185,27 @@ function readJSON(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'
 const ui = Object.assign({ dash: 'all', range: '30d', gran: 'auto', heat: '12m', cal: 'all', calMonth: null, hist: 'all' }, readJSON(UI_KEY));
 ui.q = '';
 ui.histLimit = 150;
-ui.tab = tabFromHash();
+ui.picks = new Set(); // suggestions ticked on the welcome screen
 function saveUI() {
   const { dash, range, gran, heat, cal, calMonth, hist } = ui;
   try { localStorage.setItem(UI_KEY, JSON.stringify({ dash, range, gran, heat, cal, calMonth, hist })); } catch { /* private mode */ }
 }
-function tabFromHash() { const t = location.hash.slice(1); return TABS.some(x => x.id === t) ? t : 'log'; }
+// Routes: #log, #dash, #dash/<habit id>, #cal/<id>, #hist/<id>, #set
+const PARAM = { dash: 'dash', cal: 'cal', hist: 'hist' };
+function route() {
+  const [t, p] = location.hash.slice(1).split('/');
+  ui.tab = TABS.some(x => x.id === t) ? t : 'log';
+  if (p && PARAM[ui.tab]) {
+    ui[PARAM[ui.tab]] = decodeURIComponent(p);
+    if (ui.tab === 'hist') ui.histLimit = 150;
+    saveUI();
+  }
+}
+// Keep the address in step with the selected habit without adding history entries.
+function setParam(value) {
+  try { history.replaceState(null, '', `#${ui.tab}${value && value !== 'all' ? `/${encodeURIComponent(value)}` : ''}`); } catch { /* ignore */ }
+}
+route();
 
 let entered = false;
 let bumpId = null;
@@ -237,21 +273,17 @@ function renderLog() {
   html += `<div class="tiles">${list.map((h, i) => tile(h, i, now)).join('')}</div>`;
   if (!list.length) html += emptyBox('Nothing on Today', 'All habits are hidden from Today. Show them again in Settings → Habits.');
   if (hidden) html += `<p class="muted small center">${hidden} habit${hidden > 1 ? 's' : ''} hidden from Today · <a href="#set">manage</a></p>`;
-  if (v.habits.length < 4) {
-    const names = new Set(v.habits.map(h => h.name.toLowerCase()));
-    const rest = SUGGEST.map((s, i) => [s, i]).filter(([s]) => !names.has(s.name.toLowerCase()));
-    html += `<div class="quick-add"><span class="muted small">Quick add</span><div class="chips wrap">${rest.map(([s, i]) => `<button class="chip" data-act="suggest" data-v="${i}">${s.emoji} ${esc(s.name)}</button>`).join('')}</div></div>`;
-  }
   return `${html}</section>`;
 }
 
+// Only shown while there are no habits: tick as many suggestions as you like, then add them in one go.
 function welcome() {
-  const chipsFor = kind => SUGGEST.map((s, i) => (s.kind === kind || (kind === 'good' && s.kind === 'neutral') ? `<button class="chip" data-act="suggest" data-v="${i}">${s.emoji} ${esc(s.name)}</button>` : '')).join('');
+  const n = ui.picks.size;
   return `<div class="empty welcome"><h2>What do you want to keep track of?</h2>
-    <p class="muted">Pick a few to start. You can rename them, add goals or create your own anytime.</p>
-    <h4>Do less</h4><div class="chips wrap">${chipsFor('bad')}</div>
-    <h4>Do more, or just count</h4><div class="chips wrap">${chipsFor('good')}</div>
-    <button class="btn primary" data-act="habit-new">${ICON.plus}<span>Create your own</span></button></div>`;
+    <p class="muted">Tick as many as you like. You can rename them, add goals or create your own anytime.</p>
+    ${suggestionChips('pick', ui.picks)}
+    <div class="btn-row center"><button class="btn primary" data-act="add-picked" ${n ? '' : 'disabled'}>${ICON.plus}<span>${n ? `Add ${n} habit${n > 1 ? 's' : ''}` : 'Add habits'}</span></button>
+    <button class="btn" data-act="habit-new">Create your own</button></div></div>`;
 }
 
 function tile(h, i, now) {
@@ -287,12 +319,14 @@ function tile(h, i, now) {
   // A good habit at 0 isn't a failure yet — the day isn't over — so keep it neutral.
   const numColor = h.kind === 'good' && c === 0 ? null : solidFor(h, c, ref);
   return `<article class="tile" data-h="${h.id}" style="--hc:${h.color}">
-    <header class="tile-head"><span class="tile-emoji">${esc(h.emoji || '•')}</span><span class="tile-name">${esc(h.name)}</span><span class="kind-tag" title="${KIND[h.kind].long}">${KIND[h.kind].tag}</span><button class="icon-btn" data-act="habit-menu" data-h="${h.id}" aria-label="Details for ${esc(h.name)}">${ICON.more}</button></header>
-    <div class="tile-count"><span class="num"${numColor ? ` style="color:${numColor}"` : ''}>${fmt(c)}</span><span class="unit">today</span></div>
-    <p class="tile-sub">${line1}</p>
-    <p class="tile-sub faint">${line2}</p>
-    ${goal}
-    <div class="tile-spark" title="Last 14 days">${sp}</div>
+    <header class="tile-head"><span class="tile-emoji">${esc(h.emoji || '•')}</span><span class="tile-name">${esc(h.name)}</span><span class="kind-tag" title="${KIND[h.kind].long}">${KIND[h.kind].tag}</span><button class="icon-btn" data-act="habit-menu" data-h="${h.id}" aria-label="Manage ${esc(h.name)}">${ICON.more}</button></header>
+    <a class="tile-body" href="#dash/${encodeURIComponent(h.id)}" aria-label="${esc(h.name)} dashboard: ${fmt(c)} today">
+      <div class="tile-count"><span class="num"${numColor ? ` style="color:${numColor}"` : ''}>${fmt(c)}</span><span class="unit">today</span><span class="tile-go" title="Open dashboard">${ICON.dash}</span></div>
+      <p class="tile-sub">${line1}</p>
+      <p class="tile-sub faint">${line2}</p>
+      ${goal}
+      <div class="tile-spark">${sp}</div>
+    </a>
     <footer class="tile-actions">
       <button class="btn-minus" data-act="dec" data-h="${h.id}" ${c ? '' : 'disabled'} aria-label="Remove one ${esc(h.name)} from today">−</button>
       <button class="btn-plus" data-act="inc" data-h="${h.id}" aria-label="Log ${esc(h.name)}">${ICON.plus}${i < 9 ? `<kbd>${i + 1}</kbd>` : ''}</button>
@@ -441,7 +475,7 @@ function cardGaps(h, s) {
 
 function cardRecent(h, evs) {
   const recent = evs.slice(-8).reverse();
-  return card('Recent entries', `<a class="btn ghost sm" href="#hist" data-act="hist-for" data-v="${h.id}">All</a>`, recent.length ? `<div class="evlist">${recent.map(e => evRow(e, true)).join('')}</div>` : emptyChart('Nothing logged yet.'));
+  return card('Recent entries', `<a class="btn ghost sm" href="#hist/${encodeURIComponent(h.id)}">All</a>`, recent.length ? `<div class="evlist">${recent.map(e => evRow(e, true)).join('')}</div>` : emptyChart('Nothing logged yet.'));
 }
 
 function dashAll(habits, range, gran, now) {
@@ -570,7 +604,7 @@ function openDay(k) {
       <div class="grid3"><label class="field"><span>Habit</span><select name="h">${habits.map(h => `<option value="${h.id}" ${h.id === defaultH ? 'selected' : ''}>${esc(`${h.emoji ? `${h.emoji} ` : ''}${h.name}`)}</option>`).join('')}</select></label>
       <label class="field"><span>Time</span><input type="time" name="time" value="${time}" required></label>
       <label class="field"><span>How many</span><input type="number" name="q" value="1" min="0.1" step="any" inputmode="decimal" required></label></div>
-      <label class="field"><span>Note <small>optional</small></span><input name="n" maxlength="300"></label>
+      <label class="field"><span>Comment <small>optional</small></span><input name="n" maxlength="300" autocomplete="off"></label>
       <button class="btn primary block" type="submit">Add entry</button></form>` : ''}`);
 }
 const fmtHM = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -591,7 +625,7 @@ function renderHist() {
   let html = `<section class="page">${pageHead('History')}`;
   if (!v.events.length) return `${html}${emptyBox('Nothing logged yet', 'Every entry you log shows up here, newest first. Tap one to edit or delete it.')}</section>`;
   if (ui.hist !== 'all' && !v.habitById.has(ui.hist)) ui.hist = 'all';
-  html += `<div class="controls">${habitChips('hist-habit', ui.hist, v.habits)}<input id="histQ" class="search" type="search" placeholder="Search notes" value="${esc(ui.q)}" data-input="hist-q"></div>`;
+  html += `<div class="controls">${habitChips('hist-habit', ui.hist, v.habits)}<input id="histQ" class="search" type="search" placeholder="Search comments" value="${esc(ui.q)}" data-input="hist-q"></div>`;
   const q = ui.q.trim().toLowerCase();
   const all = v.events.filter(e => (ui.hist === 'all' || e.h === ui.hist) && (!q || (e.n || '').toLowerCase().includes(q) || (v.habitById.get(e.h)?.name || '').toLowerCase().includes(q)));
   const list = all.slice(-ui.histLimit).reverse();
@@ -619,13 +653,54 @@ function openEvent(id) {
   const v = store.view;
   const e = v.eventById.get(id);
   if (!e) return;
+  const d = new Date(e.t);
   openSheet('Edit entry', `<form id="evForm" class="form" data-id="${e.id}">
     <label class="field"><span>Habit</span><select name="h">${v.habits.map(h => `<option value="${h.id}" ${h.id === e.h ? 'selected' : ''}>${esc(`${h.emoji ? `${h.emoji} ` : ''}${h.name}`)}${h.archived ? ' (archived)' : ''}</option>`).join('')}</select></label>
-    <div class="grid2"><label class="field"><span>When</span><input type="datetime-local" name="t" value="${toLocalInput(e.t)}" required></label>
-    <label class="field"><span>How many</span><input type="number" name="q" value="${S.qty(e)}" min="0.1" step="any" inputmode="decimal" required></label></div>
-    <label class="field"><span>Note</span><input name="n" value="${esc(e.n || '')}" maxlength="300"></label>
+    <div class="grid2"><label class="field"><span>Date</span><input type="date" name="d" value="${S.dayKey(d)}" max="${S.dayKey(new Date())}" required></label>
+    <label class="field"><span>Time</span><input type="time" name="time" value="${fmtHM(d)}" required></label></div>
+    <div class="field"><span>How many</span>${stepper(S.qty(e))}</div>
+    <label class="field"><span>Comment</span><input name="n" value="${esc(e.n || '')}" maxlength="300" autocomplete="off"></label>
+    <p class="form-error"></p>
     <div class="form-actions"><button type="button" class="btn danger ghost" data-act="ev-delete" data-v="${e.id}">Delete</button><span class="grow"></span><button class="btn primary" type="submit">Save</button></div>
   </form>`);
+}
+
+// ---------------------------------------------------------------- Log sheet (the + button)
+const stepper = (value = 1) => `<div class="stepper"><button type="button" data-act="step" data-v="-1" aria-label="One less">−</button><input type="number" name="q" value="${value}" min="0.1" step="any" inputmode="decimal" required aria-label="How many"><button type="button" data-act="step" data-v="1" aria-label="One more">+</button></div>`;
+
+// Date + time inputs → a Date in local time, or null.
+function readWhen(fd) {
+  const [y, m, d] = String(fd.get('d') || '').split('-').map(Number);
+  const [hh, mm] = String(fd.get('time') || '').split(':').map(Number);
+  if (!y || !m || !d || Number.isNaN(hh)) return null;
+  return new Date(y, m - 1, d, hh, mm || 0, 0, 0);
+}
+
+function openLogSheet(id) {
+  const h = store.view.habitById.get(id);
+  if (!h) return;
+  const now = new Date();
+  const today = S.dayKey(now);
+  const yesterday = S.dayKey(S.addDays(now, -1));
+  const evs = evsOf(h);
+  const last = evs.length ? new Date(evs[evs.length - 1].t) : null;
+  const sub = [`${fmt(dailyOf(h).get(today) || 0)} today`, last ? `last ${fmtDateTime(last)}` : 'nothing logged yet', h.goal?.type ? `goal ${goalText(h.goal)}` : ''].filter(Boolean).join(' · ');
+  openSheet(`${h.emoji ? `${h.emoji} ` : ''}${h.name}`, `<form id="logForm" class="form" data-h="${h.id}" data-opened="${fmtHM(now)}">
+    <p class="muted small sheet-sub">${esc(sub)}</p>
+    <div class="field"><span>Date</span><div class="date-row">
+      <input type="date" name="d" value="${today}" max="${today}" required aria-label="Date" data-change="log-date">
+      <button type="button" class="chip on" data-act="log-day" data-v="${today}">Today</button>
+      <button type="button" class="chip" data-act="log-day" data-v="${yesterday}">Yesterday</button></div></div>
+    <div class="grid2"><label class="field"><span>Time</span><input type="time" name="time" value="${fmtHM(now)}" required></label>
+      <div class="field"><span>How many</span>${stepper(1)}</div></div>
+    <label class="field"><span>Comment <small>optional</small></span><input name="n" maxlength="300" placeholder="What was going on?" autocomplete="off" enterkeyhint="done"></label>
+    <p class="form-error"></p>
+    <button class="btn primary block lg" type="submit" autofocus>${ICON.plus}<span>Log ${esc(h.name)}</span></button>
+  </form>`);
+}
+function syncDayChips(form) {
+  const v = form.querySelector('[name=d]').value;
+  $$('[data-act=log-day]', form).forEach(c => c.classList.toggle('on', c.dataset.v === v));
 }
 
 // ---------------------------------------------------------------- Habit editor & menu
@@ -635,7 +710,9 @@ function openHabitEditor(id) {
   const h = existing || { id: uid(), name: '', emoji: '', kind: 'bad', color: SWATCHES[v.habits.length % SWATCHES.length], goal: null, showOnToday: true };
   const g = h.goal || {};
   const kindOpt = (k, t, s) => `<label><input type="radio" name="kind" value="${k}" ${h.kind === k ? 'checked' : ''}><span><b>${t}</b><small>${s}</small></span></label>`;
+  const sug = existing ? '' : suggestionChips('prefill');
   openSheet(existing ? 'Edit habit' : 'New habit', `<form id="habitForm" class="form" data-id="${h.id}" data-new="${existing ? '' : '1'}">
+    ${sug ? `<div class="suggest-box"><p class="muted small">Start from a suggestion, or fill in your own below.</p>${sug}</div>` : ''}
     <div class="name-row"><label class="field emoji-field"><span>Icon</span><input name="emoji" value="${esc(h.emoji)}" maxlength="8" placeholder="🙂" autocomplete="off"></label>
     <label class="field grow"><span>Name</span><input name="name" value="${esc(h.name)}" required maxlength="40" placeholder="e.g. Smoking" autocomplete="off"></label></div>
     <div class="emoji-grid">${EMOJIS.map(e => `<button type="button" class="emoji-opt" data-act="pick-emoji" data-v="${e}">${e}</button>`).join('')}</div>
@@ -651,30 +728,47 @@ function openHabitEditor(id) {
   </form>`);
 }
 
+// The ⋯ menu: everything about managing the habit itself (logging lives on the + button).
 function openHabitMenu(id) {
-  const h = store.view.habitById.get(id);
-  if (!h) return;
-  const recent = evsOf(h).slice(-5).reverse();
-  const now = toLocalInput(new Date());
-  openSheet(`${h.emoji ? `${h.emoji} ` : ''}${h.name}`, `
-    <form id="logForm" class="form" data-h="${h.id}"><h4>Log with details</h4>
-      <div class="grid2"><label class="field"><span>When</span><input type="datetime-local" name="t" value="${now}" max="${now}" required></label>
-      <label class="field"><span>How many</span><input type="number" name="q" value="1" min="0.1" step="any" inputmode="decimal" required></label></div>
-      <label class="field"><span>Note <small>optional</small></span><input name="n" maxlength="300" placeholder="What was going on?"></label>
-      <button class="btn primary block" type="submit">Log entry</button></form>
-    <div class="btn-row"><button class="btn" data-act="habit-edit" data-h="${h.id}">${ICON.edit}<span>Edit habit</span></button><button class="btn" data-act="goto-dash" data-h="${h.id}">${ICON.dash}<span>Dashboard</span></button><button class="btn" data-act="habit-hide" data-h="${h.id}">Hide from Today</button></div>
-    ${recent.length ? `<h4>Recent</h4><div class="evlist">${recent.map(e => evRow(e, true)).join('')}</div>` : ''}`);
-}
-
-function addSuggested(i) {
-  const s = SUGGEST[i];
   const v = store.view;
-  if (v.habits.some(h => h.name.toLowerCase() === s.name.toLowerCase())) { toast(`${s.name} is already there`); return; }
-  store.upsertHabit({
-    id: uid(), name: s.name, emoji: s.emoji, kind: s.kind, color: SWATCHES[v.habits.length % SWATCHES.length],
-    goal: s.goal || null, showOnToday: true, archived: false, createdAt: new Date().toISOString(), order: v.habits.length,
-  });
-  toast(`Added ${s.name}`);
+  const h = v.habitById.get(id);
+  if (!h) return;
+  const onToday = todayIds();
+  const i = onToday.indexOf(h.id);
+  const n = evsOf(h).length;
+  const item = (act, icon, title, sub, cls = '') => `<button type="button" class="menu-item ${cls}" data-act="${act}" data-h="${h.id}">${icon}<span><b>${title}</b><small>${sub}</small></span></button>`;
+  openSheet(`${h.emoji ? `${h.emoji} ` : ''}${h.name}`, `
+    <p class="muted small sheet-sub">${KIND[h.kind].long}${h.goal?.type ? ` · goal ${goalText(h.goal)}` : ''} · ${fmtInt(n)} entr${n === 1 ? 'y' : 'ies'}</p>
+    <div class="menu">
+      ${item('habit-edit', ICON.edit, 'Edit habit', 'Name, icon, type, colour and goal')}
+      ${item('goto-dash', ICON.dash, 'Dashboard', 'Numbers and charts for this habit')}
+      ${item('hist-for', ICON.hist, 'All entries', 'Review, edit or delete past entries')}
+      ${i >= 0 ? `<div class="menu-item static">${ICON.order}<span><b>Position on Today</b><small>${i + 1} of ${onToday.length}</small></span>
+        <span class="menu-side"><button type="button" class="icon-btn" data-act="menu-move" data-v="-1" data-h="${h.id}" ${i === 0 ? 'disabled' : ''} aria-label="Move earlier">${ICON.up}</button><button type="button" class="icon-btn" data-act="menu-move" data-v="1" data-h="${h.id}" ${i === onToday.length - 1 ? 'disabled' : ''} aria-label="Move later">${ICON.down}</button></span></div>` : ''}
+      ${item('habit-hide', ICON.hide, 'Hide from Today', 'Still tracked; show it again from Settings')}
+      ${item('habit-archive', ICON.archive, 'Archive', 'Hidden everywhere, history kept')}
+      ${item('habit-delete', ICON.trash, 'Delete…', 'Remove the habit and all its entries', 'danger')}
+    </div>`);
+}
+const todayIds = () => store.view.habits.filter(h => !h.archived && h.showOnToday !== false).map(h => h.id);
+
+function addSuggestions(indices) {
+  const v = store.view;
+  const have = new Set(v.habits.map(h => h.name.toLowerCase()));
+  const ops = [];
+  let k = v.habits.length;
+  for (const i of indices) {
+    const s = SUGGEST[i];
+    if (!s || have.has(s.name.toLowerCase())) continue;
+    have.add(s.name.toLowerCase());
+    ops.push({ op: 'habit', habit: {
+      id: uid(), name: s.name, emoji: s.emoji, kind: s.kind, color: SWATCHES[k % SWATCHES.length],
+      goal: s.goal || null, showOnToday: true, archived: false, createdAt: new Date().toISOString(), order: k,
+    } });
+    k++;
+  }
+  if (ops.length) store.importOps(ops);
+  return ops.length;
 }
 
 // ---------------------------------------------------------------- Settings
@@ -687,6 +781,9 @@ function renderSettings() {
       <span class="hl-emoji" style="--hc:${h.color}">${esc(h.emoji || '•')}</span>
       <span class="hl-name">${esc(h.name)}<small>${KIND[h.kind].long}${h.goal?.type ? ` · ${goalText(h.goal)}` : ''}${h.archived ? ' · archived' : h.showOnToday === false ? ' · hidden from Today' : ''}</small></span>
       <span class="hl-act"><button class="icon-btn" data-act="habit-up" data-h="${h.id}" ${i === 0 ? 'disabled' : ''} aria-label="Move up">${ICON.up}</button><button class="icon-btn" data-act="habit-down" data-h="${h.id}" ${i === hs.length - 1 ? 'disabled' : ''} aria-label="Move down">${ICON.down}</button><button class="icon-btn" data-act="habit-edit" data-h="${h.id}" aria-label="Edit ${esc(h.name)}">${ICON.edit}</button></span></li>`).join('')}</ul>` : '<p class="muted">No habits yet.</p>');
+
+  html += card('Logging', '', toggle('pref-bool', 'logDetails', 'Ask for date and comment on +', p.logDetails !== false,
+    'When off, + logs instantly at the current time; the message that appears lets you add details or undo.'));
 
   const pal = p.palette;
   const same = x => x.bad === pal.bad && x.mid === pal.mid && x.good === pal.good;
@@ -763,14 +860,16 @@ function openSheet(title, body) {
 function closeSheet() { const d = $('#sheet'); if (d.open) d.close(); }
 
 let toastTimer = null;
-let toastFn = null;
-function toast(msg, action) {
+let toastFns = [];
+// toast('Saved') or toast('Logged', { label, fn }) or toast('Logged', [{ label, fn }, …])
+function toast(msg, actions = []) {
+  const list = Array.isArray(actions) ? actions : [actions];
   const t = $('#toast');
-  t.innerHTML = `<span>${esc(msg)}</span>${action ? `<button data-act="toast-action">${esc(action.label)}</button>` : ''}`;
-  toastFn = action ? action.fn : null;
+  t.innerHTML = `<span>${esc(msg)}</span>${list.map((a, i) => `<button data-act="toast-action" data-v="${i}">${esc(a.label)}</button>`).join('')}`;
+  toastFns = list.map(a => a.fn);
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), action ? 5000 : 2600);
+  toastTimer = setTimeout(() => t.classList.remove('show'), list.length ? 5000 : 2600);
 }
 
 const tipEl = () => $('#tip');
@@ -813,23 +912,64 @@ function confirmSheet(title, text, buttons) {
 }
 
 // ---------------------------------------------------------------- actions
-function moveHabit(id, dir) {
-  const ids = store.view.habits.map(h => h.id);
-  const i = ids.indexOf(id);
+// Swap a habit with its neighbour; onlyToday counts only the habits shown on Today.
+function moveHabit(id, dir, onlyToday = false) {
+  const all = store.view.habits.map(h => h.id);
+  const pool = onlyToday ? todayIds() : all;
+  const i = pool.indexOf(id);
   const j = i + dir;
-  if (i < 0 || j < 0 || j >= ids.length) return;
-  [ids[i], ids[j]] = [ids[j], ids[i]];
-  store.reorder(ids);
+  if (i < 0 || j < 0 || j >= pool.length) return;
+  const a = all.indexOf(id);
+  const b = all.indexOf(pool[j]);
+  [all[a], all[b]] = [all[b], all[a]];
+  store.reorder(all);
 }
+const habitOf = el => store.view.habitById.get(el.dataset.h || el.dataset.v);
 
 const ACTIONS = {
   inc(el) {
-    const h = store.view.habitById.get(el.dataset.h);
+    const h = habitOf(el);
+    if (!h) return;
+    if (prefs().logDetails !== false) { openLogSheet(h.id); return; }
     const ev = store.log(h.id);
     navigator.vibrate?.(12);
     bumpId = h.id;
-    toast(`Logged ${h.name}`, { label: 'Undo', fn: () => store.deleteEvent(ev) });
+    toast(`Logged ${h.name}`, [{ label: 'Details', fn: () => openEvent(ev.id) }, { label: 'Undo', fn: () => store.deleteEvent(ev) }]);
   },
+  'log-day': el => {
+    const f = el.closest('form');
+    f.querySelector('[name=d]').value = el.dataset.v;
+    syncDayChips(f);
+  },
+  step: el => {
+    const input = el.closest('.stepper').querySelector('input');
+    input.value = String(Math.max(1, (parseFloat(input.value) || 1) + Number(el.dataset.v)));
+  },
+  pick: el => {
+    const i = +el.dataset.v;
+    if (ui.picks.has(i)) ui.picks.delete(i); else ui.picks.add(i);
+    render();
+  },
+  'add-picked': () => {
+    const n = addSuggestions([...ui.picks]);
+    ui.picks.clear();
+    if (n) toast(`Added ${n} habit${n > 1 ? 's' : ''}`);
+  },
+  prefill: el => {
+    const s = SUGGEST[+el.dataset.v];
+    const f = $('#habitForm');
+    if (!s || !f) return;
+    const set = (name, value) => { const x = f.querySelector(`[name="${name}"]`); if (x) x.value = value; };
+    set('name', s.name);
+    set('emoji', s.emoji);
+    const k = f.querySelector(`[name=kind][value="${s.kind}"]`);
+    if (k) k.checked = true;
+    set('gtype', s.goal?.type || '');
+    set('gcount', s.goal?.count ?? '');
+    set('gperiod', s.goal?.period || 'day');
+    $$('[data-act=prefill]', f).forEach(c => { c.classList.toggle('on', c === el); c.setAttribute('aria-pressed', String(c === el)); });
+  },
+  'menu-move': el => { moveHabit(el.dataset.h, +el.dataset.v, true); openHabitMenu(el.dataset.h); },
   dec(el) {
     const h = store.view.habitById.get(el.dataset.h);
     const tk = S.dayKey(new Date());
@@ -852,30 +992,35 @@ const ACTIONS = {
       { label: 'Delete', act: 'habit-purge', v: h.id, cls: 'danger' },
     ]);
   },
-  'habit-archive': el => { store.upsertHabit({ id: el.dataset.v, archived: true }); closeSheet(); toast('Archived'); },
+  'habit-archive': el => {
+    const h = habitOf(el);
+    if (!h) return;
+    store.upsertHabit({ id: h.id, archived: true });
+    closeSheet();
+    toast(`${h.name} archived`, { label: 'Undo', fn: () => store.upsertHabit({ id: h.id, archived: false }) });
+  },
   'habit-purge': el => { store.deleteHabit(el.dataset.v, true); closeSheet(); toast('Deleted'); },
   'pick-emoji': el => { const i = $('#habitForm [name=emoji]'); if (i) i.value = el.dataset.v; },
-  suggest: el => addSuggested(+el.dataset.v),
-  'goto-dash': el => { ui.dash = el.dataset.h; saveUI(); closeSheet(); location.hash = '#dash'; },
-  'dash-habit': el => { ui.dash = el.dataset.v; saveUI(); render(); scrollTo({ top: 0 }); },
+  'goto-dash': el => { closeSheet(); location.hash = `#dash/${encodeURIComponent(el.dataset.h)}`; },
+  'dash-habit': el => { ui.dash = el.dataset.v; saveUI(); setParam(ui.dash); render(); scrollTo({ top: 0 }); },
   range: el => { ui.range = el.dataset.v; saveUI(); render(); },
   gran: el => { ui.gran = el.dataset.v; saveUI(); render(); },
   heat: el => { ui.heat = el.dataset.v; saveUI(); render(); },
   customize: () => openCustomize(),
-  'cal-habit': el => { ui.cal = el.dataset.v; saveUI(); render(); },
+  'cal-habit': el => { ui.cal = el.dataset.v; saveUI(); setParam(ui.cal); render(); },
   'cal-prev': () => { const m = ui.calMonth ? S.parseDay(`${ui.calMonth}-01`) : S.startOfMonth(new Date()); ui.calMonth = S.dayKey(S.addMonths(m, -1)).slice(0, 7); saveUI(); render(); },
   'cal-next': () => { const m = ui.calMonth ? S.parseDay(`${ui.calMonth}-01`) : S.startOfMonth(new Date()); ui.calMonth = S.dayKey(S.addMonths(m, 1)).slice(0, 7); saveUI(); render(); },
   'cal-today': () => { ui.calMonth = null; saveUI(); render(); },
   'cal-day': el => openDay(el.dataset.v),
-  'hist-habit': el => { ui.hist = el.dataset.v; ui.histLimit = 150; saveUI(); render(); },
-  'hist-for': el => { ui.hist = el.dataset.v; saveUI(); location.hash = '#hist'; },
+  'hist-habit': el => { ui.hist = el.dataset.v; ui.histLimit = 150; saveUI(); setParam(ui.hist); render(); },
+  'hist-for': el => { closeSheet(); location.hash = `#hist/${encodeURIComponent(el.dataset.h || el.dataset.v)}`; },
   'hist-more': () => { ui.histLimit += 300; render(); },
   'ev-edit': el => openEvent(el.dataset.v),
   'ev-delete': el => { const e = store.view.eventById.get(el.dataset.v); if (!e) return; store.deleteEvent(e); closeSheet(); toast('Entry deleted', { label: 'Undo', fn: () => store.restore(e) }); },
   'sync-now': () => openSyncInfo(),
   'do-sync': async () => { await store.sync(); openSyncInfo(); },
   'sheet-close': () => closeSheet(),
-  'toast-action': () => { const f = toastFn; toastFn = null; $('#toast').classList.remove('show'); f?.(); },
+  'toast-action': el => { const f = toastFns[+el.dataset.v]; toastFns = []; $('#toast').classList.remove('show'); f?.(); },
   'pref-theme': el => store.setPrefs({ theme: el.dataset.v }),
   'pref-cmode': el => { store.setPrefs({ colorMode: el.dataset.v }); if ($('#sheet').open) setTimeout(openCustomize, 0); },
   'pref-week': el => store.setPrefs({ weekStart: +el.dataset.v }),
@@ -915,7 +1060,7 @@ document.addEventListener('click', e => {
   if (!el || el.disabled) return;
   const fn = ACTIONS[el.dataset.act];
   if (!fn) return;
-  if (el.tagName === 'A' && el.getAttribute('href') === '#hist') { /* let the hash change happen */ } else e.preventDefault();
+  e.preventDefault();
   fn(el, e);
 });
 
@@ -923,6 +1068,8 @@ document.addEventListener('change', async e => {
   const el = e.target;
   const kind = el.dataset?.change;
   if (!kind) return;
+  if (kind === 'log-date') syncDayChips(el.form);
+  if (kind === 'pref-bool') store.setPrefs({ [el.dataset.k]: el.checked });
   if (kind === 'section') store.setPrefs({ sections: { [el.dataset.k]: el.checked } });
   if (kind === 'pal') store.setPrefs({ palette: { [el.dataset.k]: el.value } });
   if (kind === 'device') { await store.setDevice({ [el.dataset.k]: el.checked }); toast(el.checked ? 'Password will be asked every time' : 'Stays unlocked on this device'); }
@@ -1006,10 +1153,20 @@ const FORMS = {
   },
   logForm(f, fd) {
     const h = store.view.habitById.get(f.dataset.h);
-    const t = new Date(String(fd.get('t')));
+    if (!h) return;
+    const err = $('.form-error', f);
+    const now = new Date();
+    let t = readWhen(fd);
+    if (!t) { err.textContent = 'Pick a date and a time.'; return; }
+    // Date and time left as they were: use the exact moment of tapping "Log".
+    if (fd.get('d') === S.dayKey(now) && fd.get('time') === f.dataset.opened) t = now;
+    if (t - now > 60000) { err.textContent = 'That’s in the future. Pick an earlier time.'; return; }
     const ev = store.log(h.id, { t: t.toISOString(), q: +fd.get('q') || 1, n: String(fd.get('n') || '').trim() });
     closeSheet();
-    toast(`Logged ${h.name}`, { label: 'Undo', fn: () => store.deleteEvent(ev) });
+    navigator.vibrate?.(12);
+    const today = S.dayKey(t) === S.dayKey(now);
+    if (today) bumpId = h.id;
+    toast(`Logged ${h.name}${today ? '' : ` on ${fmtShort(t)}`}`, { label: 'Undo', fn: () => store.deleteEvent(ev) });
   },
   dayForm(f, fd) {
     const [hh, mm] = String(fd.get('time')).split(':').map(Number);
@@ -1023,7 +1180,12 @@ const FORMS = {
   evForm(f, fd) {
     const e = store.view.eventById.get(f.dataset.id);
     if (!e) return;
-    const ev = { id: e.id, h: String(fd.get('h')), t: new Date(String(fd.get('t'))).toISOString() };
+    const orig = new Date(e.t);
+    let t = readWhen(fd);
+    if (!t) { $('.form-error', f).textContent = 'Pick a date and a time.'; return; }
+    if (fd.get('d') === S.dayKey(orig) && fd.get('time') === fmtHM(orig)) t = orig; // keep the seconds
+    if (t - Date.now() > 60000) { $('.form-error', f).textContent = 'That’s in the future. Pick an earlier time.'; return; }
+    const ev = { id: e.id, h: String(fd.get('h')), t: t.toISOString() };
     const q = +fd.get('q');
     if (q && q !== 1) ev.q = q;
     const n = String(fd.get('n') || '').trim();
@@ -1122,7 +1284,7 @@ function buildNav() {
   $('.tabs-bottom').innerHTML = html;
 }
 
-window.addEventListener('hashchange', () => { ui.tab = tabFromHash(); closeSheet(); render(); scrollTo({ top: 0 }); });
+window.addEventListener('hashchange', () => { route(); closeSheet(); render(); scrollTo({ top: 0 }); });
 let resizeTimer = null;
 window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(mountCharts, 150); });
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; if (ui.tab === 'set') renderSoon(); });
@@ -1145,6 +1307,16 @@ store.addEventListener('status', updateSyncPill);
 store.addEventListener('locked', e => showGate('unlock', e.detail?.message));
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  // When a new version is deployed, the new service worker takes over and the page reloads
+  // itself — right away if nothing is being edited, otherwise after you tap "Reload".
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloading) return;
+    const busyNow = $('#sheet').open || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+    if (!busyNow) { reloading = true; location.reload(); return; }
+    toast('Tally was updated', { label: 'Reload', fn: () => location.reload() });
+  });
   navigator.serviceWorker.register('sw.js').catch(() => { /* optional */ });
 }
 
